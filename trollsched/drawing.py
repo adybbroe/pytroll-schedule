@@ -222,6 +222,8 @@ def main():
     from datetime import datetime
 
     passes = get_next_passes(["noaa 19", "suomi npp"], datetime.now(), 24, (16, 58, 0))
+    # passes = get_next_passes(["noaa 19", "suomi npp"], datetime.now(), 24, (16, 58, 0),
+    #                         tle_file="/home/a000680/data/tles/tle-201909021930.txt")
     for p in passes:
         save_fig(p, directory="/tmp/plots/")
 

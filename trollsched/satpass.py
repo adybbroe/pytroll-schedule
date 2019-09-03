@@ -24,6 +24,7 @@
 """
 
 import ftplib
+import hashlib
 import glob
 import logging
 import logging.handlers
@@ -37,6 +38,7 @@ from datetime import datetime, timedelta
 from tempfile import mkstemp
 import numpy as np
 
+from trollsift.parser import Parser
 from pyorbital import orbital, tlefile
 from pyresample.boundary import AreaDefBoundary
 from trollsched.boundary import SwathBoundary
@@ -50,6 +52,36 @@ VIIRS_PLATFORM_NAMES = ['SUOMI NPP', 'SNPP',
 MERSI_PLATFORM_NAMES = ['FENGYUN 3C', 'FENGYUN-3C', 'FY-3C']
 MERSI2_PLATFORM_NAMES = ['FENGYUN 3D', 'FENGYUN-3D', 'FY-3D',
                          'FENGYUN 3E', 'FENGYUN-3E', 'FY-3E']
+
+
+class NoValidTles(Exception):
+    pass
+
+
+def find_valid_tlefile(valid_time, tle_files, time_thr):
+    """Find a valid tle-file from a list of file, a valid-time and given threshold
+       for the maximum acceptable time-deviation"""
+
+    tle_file_pattern = "tle-{time:%Y%m%d%H%M}.txt"
+    tlep = Parser(tle_file_pattern)
+
+    valid_tle_file = None
+    for tle_file in tle_files:
+        fname = os.path.basename(tle_file)
+        res = tlep.parse(fname)
+        dtobj = res['time']
+
+        delta_t = abs(valid_time - dtobj)
+        if delta_t < time_thr:
+            time_thr = delta_t
+            valid_tle_file = tle_file
+
+    if not valid_tle_file:
+        raise NoValidTles("Failed finding a valid tle file! TLES=%s" % os.environ.get('TLES'))
+    else:
+        logger.debug("Valid TLE file: %s", valid_tle_file)
+
+    return valid_tle_file
 
 
 class SimplePass(object):
@@ -299,8 +331,6 @@ class Pass(SimplePass):
                                       "FENGYUN 3C": "FENGYUN-3C",
                                       "SUOMI NPP": "NPP"}
 
-        import hashlib
-
         pass_key = hashlib.md5(("{:s}|{:d}|{:d}|{:.3f}|{:.3f}".
                                 format(satellite_meos_translation.get(self.satellite.name.upper(),
                                                                       self.satellite.name.upper()),
@@ -535,15 +565,21 @@ def get_next_passes(satellites,
     """
     passes = {}
 
-    if tle_file is None and 'TLES' not in os.environ:
-        fp_, tle_file = mkstemp(prefix="tle", dir="/tmp")
-        os.close(fp_)
-        logger.info("Fetch tle info from internet")
-        tlefile.fetch(tle_file)
+    if tle_file is None:
+        if 'TLES' not in os.environ:
+            fp_, tle_file = mkstemp(prefix="tle", dir="/tmp")
+            os.close(fp_)
+            logger.info("Fetch tle info from internet")
+            tlefile.fetch(tle_file)
+        else:
+            logger.debug("Try find a valid TLE file locally: TLES = %s", os.environ['TLES'])
+            tlefiles = glob.glob(os.environ['TLES'])
+            dtime = timedelta(days=5)
+            logger.debug("Time threshold = %s", str(dtime))
+            tle_file = find_valid_tlefile(utctime, tlefiles, dtime)
 
-    if not os.path.exists(tle_file) and 'TLES' not in os.environ:
-        logger.info("Fetch tle info from internet")
-        tlefile.fetch(tle_file)
+    elif not os.path.exists(tle_file):
+        raise FileNotFoundError("TLE file %s cannot be found!" % tle_file)
 
     for sat in satellites:
         if not hasattr(sat, 'name'):
