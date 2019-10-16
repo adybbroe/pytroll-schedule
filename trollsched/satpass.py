@@ -46,10 +46,15 @@ from trollsched import (MIN_PASS, NOAA20_NAME, NUMBER_OF_FOVS)
 logger = logging.getLogger(__name__)
 
 VIIRS_PLATFORM_NAMES = ['SUOMI NPP', 'SNPP',
+                        'SUOMI-NPP', 'NPP',
                         'NOAA-20', 'NOAA 20']
-MERSI_PLATFORM_NAMES = ['FENGYUN 3C', 'FENGYUN-3C', 'FY-3C']
+MERSI_PLATFORM_NAMES = ['FENGYUN 3A', 'FENGYUN-3A', 'FY-3A',
+                        'FENGYUN 3B', 'FENGYUN-3B', 'FY-3B',
+                        'FENGYUN 3C', 'FENGYUN-3C', 'FY-3C']
 MERSI2_PLATFORM_NAMES = ['FENGYUN 3D', 'FENGYUN-3D', 'FY-3D',
                          'FENGYUN 3E', 'FENGYUN-3E', 'FY-3E']
+MODIS_PLATFORM_NAMES = ['AQUA', 'EOS-AQUA',
+                        'TERRA', 'EOS-TERRA']
 
 
 class SimplePass(object):
@@ -535,15 +540,12 @@ def get_next_passes(satellites,
     """
     passes = {}
 
-    if tle_file is None and 'TLES' not in os.environ:
-        fp_, tle_file = mkstemp(prefix="tle", dir="/tmp")
-        os.close(fp_)
-        logger.info("Fetch tle info from internet")
-        tlefile.fetch(tle_file)
-
-    if not os.path.exists(tle_file) and 'TLES' not in os.environ:
-        logger.info("Fetch tle info from internet")
-        tlefile.fetch(tle_file)
+    if 'TLES' not in os.environ:
+        if tle_file is None or not os.path.exists(tle_file):
+            fp_, tle_file = mkstemp(prefix="tle", dir="/tmp")
+            os.close(fp_)
+            logger.info("Fetch tle info from internet")
+            tlefile.fetch(tle_file)
 
     for sat in satellites:
         if not hasattr(sat, 'name'):
@@ -556,43 +558,39 @@ def get_next_passes(satellites,
                                           horizon=local_horizon,
                                           *coords
                                           )
+        instrument = "unknown"
         if sat.name.lower().startswith("metop") or sat.name.lower().startswith("noaa"):
             instrument = "avhrr"
-        elif sat.name in ["aqua", "terra"]:
+        elif sat.name.upper() in MODIS_PLATFORM_NAMES:
             instrument = "modis"
-        elif sat.name.endswith("npp") or sat.name.startswith("jpss"):
+        elif sat.name.upper() in VIIRS_PLATFORM_NAMES or sat.name.endswith("npp") or sat.name.startswith("jpss"):
             instrument = "viirs"
-        elif sat.name.lower() in ["fengyun 3a", "fengyun 3b", "fengyun 3c", "fengyun 3d"]:
+        elif sat.name.upper() in MERSI_PLATFORM_NAMES:
             instrument = "mersi"
-        else:
-            instrument = "unknown"
+        elif sat.name.upper() in MERSI2_PLATFORM_NAMES:
+            instrument = "mersi2"
 
         if sat.name == "metop-a":
             # Take care of metop-a
             passes["metop-a"] = get_metopa_passes(sat, passlist, satorb)
 
-        elif sat.name in ["aqua", "terra"] and aqua_terra_dumps:
+        elif sat.name.upper() in MODIS_PLATFORM_NAMES and aqua_terra_dumps:
             # Take care of aqua (dumps in svalbard and poker flat)
             # Get the Terra/Aqua passes and fill the passes dict:
             get_terra_aqua_passes(passes, utctime, forward, sat, passlist, satorb, aqua_terra_dumps)
 
-        else:
-            if sat.name.upper() in VIIRS_PLATFORM_NAMES:
-                instrument = "viirs"
-            elif sat.name.lower().startswith("metop") or sat.name.lower().startswith("noaa"):
-                instrument = "avhrr"
-            elif sat.name.upper() in MERSI_PLATFORM_NAMES:
-                instrument = "mersi"
-            elif sat.name.upper() in MERSI2_PLATFORM_NAMES:
-                instrument = "mersi2"
-            else:
-                instrument = "unknown"
+        elif instrument != "unknown":
 
             passes[sat.name] = [
                 Pass(sat, rtime, ftime, orb=satorb, uptime=uptime, instrument=instrument)
                 for rtime, ftime, uptime in passlist
                 if ftime - rtime > timedelta(minutes=MIN_PASS)
             ]
+
+        else:
+            raise AttributeError(
+                "Failed generating pass-schedule, probably unknown instrument: %s - satellite = %s" % (
+                    instrument, sat.name))
 
     return set(fctools_reduce(operator.concat, list(passes.values())))
 
