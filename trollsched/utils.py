@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2017, 2018 Alexander Maul
+# Copyright (c) 2017 - 2019 Pytroll Community
 #
 # Author(s):
 #
 #   Alexander Maul <alexander.maul@dwd.de>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -145,8 +146,8 @@ def read_config_yaml(filename):
         pattern[k] = v
 
     sched_params = cfg['default']
-    plot_parameters = sched_params['plot_parameters'] or {}
-    plot_title = sched_params['plot_title'] or None
+    plot_parameters = sched_params.get('plot_parameters', None) or {}
+    plot_title = sched_params.get('plot_title', None)
 
     scheduler = schedule.Scheduler(stations=[stations[st_id]
                                              for st_id in sched_params['station']],
