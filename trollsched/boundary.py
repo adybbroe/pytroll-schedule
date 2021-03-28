@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014-2019 PyTroll community
+# Copyright (c) 2014-2021 PyTroll community
 
 # Author(s):
 
@@ -168,8 +168,7 @@ class SwathBoundary(Boundary):
         # From pass length in seconds and the seconds for one scan derive the number of scans in the swath:
         scans_nb = scanlength_seconds / sec_scan_duration * along_scan_reduce_factor
         # Devide by the scan step to a reduced number of scans:
-        scans_nb = np.floor(scans_nb / scan_step)
-        scans_nb = int(max(scans_nb, 1))
+        scans_nb = int(max(np.floor(scans_nb / scan_step), 2))
 
         sides_lons, sides_lats = self.get_instrument_points(self.overpass,
                                                             overpass.risetime,
@@ -183,11 +182,10 @@ class SwathBoundary(Boundary):
         # Devide by the scan step to a reduced number of scans:
         scans_nb = scanlength_seconds / sec_scan_duration * along_scan_reduce_factor
         scan_step = 10  # Valid for MHS/AMSU-S/MWHS-2 only
-        scans_nb = np.floor(scans_nb / scan_step)
-        scans_nb = int(max(scans_nb, 1))
+        scans_nb = int(max(np.floor(scans_nb / scan_step), 2))
 
         if side_shape != scans_nb:
-            nmod = side_shape // scans_nb
+            nmod = max(side_shape // scans_nb, 1)
             logger.debug('Number of scan lines (%d) does not match number of scans (%d)',
                          side_shape, scans_nb)
             logger.info('Take every %d th element on the sides...', nmod)

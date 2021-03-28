@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 - 2019 PyTroll Community
+# Copyright (c) 2014 - 2019, 2021 PyTroll Community
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
@@ -605,7 +605,7 @@ def get_metopa_passes(sat, passlist, satorb):
     passes = []
     for overpass in metop_passes:
         if overpass.pass_direction() == "descending":
-            new_rise = overpass.slsearch(60)
+            new_rise = overpass.slsearch(60.0)
             if new_rise is not None and new_rise < overpass.falltime:
                 overpass.risetime = new_rise
                 # overpass has a boundary property, and it is not really needed here anyways!

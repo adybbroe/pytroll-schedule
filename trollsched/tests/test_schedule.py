@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 - 2019 PyTroll
+# Copyright (c) 2014 - 2019, 2021 PyTroll
 
 # Author(s):
 
@@ -93,9 +93,9 @@ class TestTools(unittest.TestCase):
         passes = [MyPass(ref_time, ref_time + timedelta(minutes=10)),
                   MyPass(ref_time + timedelta(minutes=10.01),
                          ref_time + timedelta(minutes=20))]
-        self.assertEquals(
+        self.assertEqual(
             len(conflicting_passes(passes, timedelta(seconds=0))), 2)
-        self.assertEquals(
+        self.assertEqual(
             len(conflicting_passes(passes, timedelta(seconds=60))), 1)
 
 
@@ -151,8 +151,8 @@ class TestAreaBoundary(unittest.TestCase):
 class TestUtils(unittest.TestCase):
 
     def test_fermi(self):
-        self.assertEquals(fermia(0.25), 0.875)
-        self.assertEquals(fermib(0.25), 0.5)
+        self.assertEqual(fermia(0.25), 0.875)
+        self.assertEqual(fermib(0.25), 0.5)
 
     def test_parse_datetime(self):
 
@@ -304,26 +304,17 @@ class TestAll(unittest.TestCase):
 
             n20pass1 = allpasses.pop()
 
-            rt1 = datetime(2018, 11, 28, 10, 53, 42, 79483)
-            ft1 = datetime(2018, 11, 28, 11, 9, 6, 916787)
-            rt2 = datetime(2018, 11, 28, 12, 34, 44, 667963)
-            ft2 = datetime(2018, 11, 28, 12, 49, 25, 134067)
+            rt1 = datetime(2018, 11, 28, 12, 34, 44, 667963)
+            ft1 = datetime(2018, 11, 28, 12, 49, 25, 134067)
 
             dt_ = n20pass1.risetime - rt1
+
             self.assertAlmostEqual(dt_.seconds, 0)
 
             dt_ = n20pass1.falltime - ft1
             self.assertAlmostEqual(dt_.seconds, 0)
 
-            n20pass2 = allpasses.pop()
-
-            dt_ = n20pass2.risetime - rt2
-            self.assertAlmostEqual(dt_.seconds, 0)
-
-            dt_ = n20pass2.falltime - ft2
-            self.assertAlmostEqual(dt_.seconds, 0)
-
-            self.assertEqual(n20pass2.instrument, 'viirs')
+            self.assertEqual(n20pass1.instrument, 'viirs')
 
     @patch('os.path.exists')
     @patch('trollsched.satpass.get_aqua_terra_dumpdata_from_ftp')
@@ -409,9 +400,10 @@ class TestAll(unittest.TestCase):
 
             self.assertEqual(len(metopa_passes), 2)
             self.assertEqual(metopa_passes[0].pass_direction(), 'descending')
-            self.assertEqual(metopa_passes[0].seconds(), 462.466119)
+
+            self.assertEqual(metopa_passes[0].seconds(), 487.512589)
             self.assertEqual((metopa_passes[0].uptime - datetime(2018, 12, 4, 9, 17, 48, 530484)).seconds, 0)
-            self.assertEqual((metopa_passes[0].risetime - datetime(2018, 12, 4, 9, 17, 46, 691075)).seconds, 0)
+            self.assertEqual((metopa_passes[0].risetime - datetime(2018, 12, 4, 9, 17, 21, 644605)).seconds, 0)
 
     def tearDown(self):
         """Clean up"""

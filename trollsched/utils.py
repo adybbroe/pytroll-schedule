@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2017, 2018 Alexander Maul
+# Copyright (c) 2017, 2018, 2021 Alexander Maul
 #
 # Author(s):
 #
@@ -25,7 +25,7 @@
 
 import yaml
 import logging
-from collections import Mapping
+import collections
 from six.moves.configparser import ConfigParser
 
 try:
@@ -55,7 +55,7 @@ def recursive_dict_update(d, u):
         http://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
     """
     for k, v in u.items():
-        if isinstance(v, Mapping):
+        if isinstance(v, collections.Mapping):
             r = recursive_dict_update(d.get(k, {}), v)
             d[k] = r
         else:
